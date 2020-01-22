@@ -1,0 +1,54 @@
+#!/bin/bash -eux
+
+error() {
+    echo -e "\e[1;31m$*\e[0m" >&2
+}
+
+teardown() {
+    local ec=$?
+    set +x
+
+    # Reassign the files to the previous owner
+    sudo chown --recursive $(stat -c %u:%g docker-compose.yml) ${PWD} ${SPEC}
+
+    trap - EXIT INT TERM
+
+    if [ $ec -gt 0 -a $$ -eq 1 ] ; then
+        error
+        error "Échec de la génération du RPM !!"
+        error
+        error "Le conteneur attend indéfiniement pour vous permettre de "
+        error "débugger avec:"
+        error
+        error "    docker exec -it $HOSTNAME /bin/bash"
+        error
+        error "Ctrl+C termine et nettoye le conteneur."
+        tail -f /dev/null
+    fi
+}
+trap teardown EXIT INT TERM
+
+VERSION="1.3.1"
+
+cd $(readlink -m $0/..)
+SRCDIR=${SRCDIR-$(readlink -e ./sources)}
+SPEC=${SPEC:-vault.spec}
+sudo sed -i s/.centos// /etc/rpm/macros.dist
+# Workaround https://bugs.centos.org/view.php?id=12793
+sudo sed -i '/^baseurl/s/$releasever/7.7.1908/g' /etc/yum.repos.d/CentOS-Sources.repo
+
+# rpmbuild requires files to be owned by running uid
+sudo chown --recursive $(id -u):$(id -g) ${PWD} ${SPEC}
+
+# Download the built binary
+if [ ! -r "${SRCDIR}/vault_${VERSION}_linux_amd64.zip" ]; then
+    sudo yum install -y wget
+    wget https://releases.hashicorp.com/vault/${VERSION}/vault_${VERSION}_linux_amd64.zip \
+         -O ${SRCDIR}/vault_${VERSION}_linux_amd64.zip
+fi
+
+rpmbuild \
+    --define "_rpmdir ${PWD}" \
+    --define "_sourcedir ${SRCDIR}" \
+    --define "pkgversion ${VERSION}" \
+    -bb ${SPEC}

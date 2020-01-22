@@ -1,0 +1,11 @@
+version: "3"
+
+services:
+  rpmbuild:
+    image: rpmbuild/centos7
+    environment:
+      DISTDIR: /home/builder/src
+    volumes:
+    - .:/srv
+    entrypoint: /srv/pkg
+    command: []
