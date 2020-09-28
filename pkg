@@ -34,8 +34,6 @@ cd $(readlink -m $0/..)
 SRCDIR=${SRCDIR-$(readlink -e ./sources)}
 SPEC=${SPEC:-vault.spec}
 sudo sed -i s/.centos// /etc/rpm/macros.dist
-# Workaround https://bugs.centos.org/view.php?id=12793
-sudo sed -i '/^baseurl/s/$releasever/7.7.1908/g' /etc/yum.repos.d/CentOS-Sources.repo
 
 # rpmbuild requires files to be owned by running uid
 sudo chown --recursive $(id -u):$(id -g) ${PWD} ${SPEC}

@@ -1,8 +1,16 @@
 version: "3"
 
 services:
-  rpmbuild:
+  centos7:
     image: rpmbuild/centos7
+    environment:
+      DISTDIR: /home/builder/src
+    volumes:
+    - .:/srv
+    entrypoint: /srv/pkg
+    command: []
+  centos8:
+    image: dalibo/labs-sdk:centos8
     environment:
       DISTDIR: /home/builder/src
     volumes:
